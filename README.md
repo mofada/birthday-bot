@@ -19,8 +19,8 @@
 
 同时提供两种 Bot 凭证初始化方式：
 
-1. GitHub Pages 可视化配置页（实验功能）
-2. 本地 CLI 脚本（CORS 受限时兜底）
+1. GitHub Pages 可视化配置页（实验功能，走 Cloudflare 中转代理）
+2. 本地 CLI 脚本（推荐，更安全）
 
 功能概览：
 
@@ -50,12 +50,12 @@ src 目录按职责拆分：
 
 ### 方式一：GitHub Pages（可视化）
 
-<p style="color:#d1242f;font-weight:700;">⚠ 当前状态：受 iLink 接口跨域（CORS）限制影响，网页方式目前不可用。</p>
-<p style="color:#d1242f;">推荐直接使用下方「方式二：本地 CLI（兜底）」完成初始化。</p>
+<p style="color:#d1242f;font-weight:700;">⚠ 安全提示：网页方式为实验功能，当前通过 Cloudflare Worker 中转代理访问 iLink 接口。</p>
+<p style="color:#d1242f;">如果你对凭证安全要求更高，建议优先使用下方「方式二：本地 CLI（推荐）」在本机终端完成初始化。</p>
 
 1. 在仓库 Settings -> Pages 中启用 Pages
 2. 选择 Deploy from branch，分支选 `master`，目录选 `docs`
-3. 打开页面 [Birthday Bot Setup](`https://mofada.github.io/birthday-bot/`)
+3. 打开页面 [Birthday Bot Setup](https://mofada.github.io/birthday-bot/)
 4. 按页面提示：扫码登录 -> 微信给 Bot 发“绑定我” -> 复制结果
 
 页面会生成：
@@ -71,9 +71,9 @@ src 目录按职责拆分：
 - 不要提交到仓库
 - 页面只在浏览器内存展示，刷新后清空
 
-### 方式二：本地 CLI（兜底）
+### 方式二：本地 CLI（推荐）
 
-如果页面方式被 CORS 拦截，请本地运行：
+本地 CLI 不依赖浏览器与中转代理，安全性更高，建议优先使用：
 
 	bun run get-token
 

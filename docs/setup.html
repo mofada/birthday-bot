@@ -130,10 +130,6 @@
   </head>
   <body>
     <div class="wrap">
-      <div class="card danger">
-        如果页面请求失败，请使用 <code>bun run get-token</code>。
-      </div>
-
       <div class="card">
         <h1>Birthday Bot 初始化向导</h1>
         <p class="muted">流程：扫码登录 → 给 Bot 发“绑定我” → 复制 Secrets。</p>
@@ -149,7 +145,7 @@
           <span id="status" class="pill">未开始</span>
         </div>
         <div id="qrWrap" style="display:none">
-          <img id="qrImage" class="qr" alt="登录二维码" />
+          <div id="qrImage" class="qr" aria-label="登录二维码"></div>
           <p class="muted" id="scanHint">请用 iOS 微信扫码并确认登录。</p>
         </div>
       </div>
@@ -177,12 +173,15 @@
       </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-      const BASE = "https://ilinkai.weixin.qq.com";
+      // const BASE = "https://ilinkai.weixin.qq.com";
+      const BASE = "https://ilink.fada-b80.workers.dev"; // 这是一个 CORS 代理，部署在 Cloudflare Workers 上，免费且无需科学上网。
       const CHANNEL_VERSION = "0.1.0";
 
       let qrcode = "";
       let botToken = "";
+      let runtimeBotBaseUrl = "";
       let botBaseUrl = BASE;
       let getUpdatesBuf = "";
       let scanTimer = null;
@@ -214,6 +213,27 @@
         corsBox.style.display = "block";
       }
 
+      async function renderQrCode(content) {
+        if (!content) {
+          throw new Error("二维码内容为空");
+        }
+
+        if (!window.QRCode || typeof window.QRCode !== "function") {
+          throw new Error("二维码组件加载失败");
+        }
+
+        qrImage.innerHTML = "";
+
+        new window.QRCode(qrImage, {
+          text: content,
+          width: 260,
+          height: 260,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: window.QRCode.CorrectLevel.M,
+        });
+      }
+
       async function requestJson(url, options = {}) {
         try {
           const resp = await fetch(url, options);
@@ -242,7 +262,8 @@
             clearInterval(scanTimer);
             scanTimer = null;
             botToken = data.bot_token || "";
-            botBaseUrl = data.baseurl || BASE;
+            runtimeBotBaseUrl = data.baseurl || "";
+            botBaseUrl = runtimeBotBaseUrl || BASE;
             setStatus("扫码已确认");
             scanHint.textContent = "登录成功，请在微信给 Bot 发送：绑定我";
             btnBind.disabled = false;
@@ -274,14 +295,15 @@
 
         try {
           const qrRes = await requestJson(`${BASE}/ilink/bot/get_bot_qrcode?bot_type=3`);
+          console.log(qrRes);
           qrcode = qrRes.qrcode || "";
-          const img = qrRes.qrcode_img_content || "";
+          const qrContent = qrRes.qrcode_img_content || "";
 
-          if (!qrcode || !img) {
+          if (!qrcode || !qrContent) {
             throw new Error("二维码响应异常");
           }
 
-          qrImage.src = img;
+          await renderQrCode(qrContent);
           qrWrap.style.display = "block";
           setStatus("请扫码");
 
@@ -297,7 +319,7 @@
       }
 
       async function getUpdatesOnce() {
-        const resp = await requestJson(`${botBaseUrl}/ilink/bot/getupdates`, {
+        const resp = await requestJson(`${BASE}/ilink/bot/getupdates`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -358,7 +380,7 @@
               `ILINK_TOKEN=${botToken}`,
               `TO_USER_ID=${result.toUserId}`,
               `CONTEXT_TOKEN=${result.contextToken}`,
-              `BOT_BASE_URL=${botBaseUrl}`,
+              `BOT_BASE_URL=${runtimeBotBaseUrl || botBaseUrl}`,
             ].join("\n");
 
             resultEl.value = output;
