@@ -2,6 +2,17 @@
 
 一个用于家庭生日提醒的微信机器人项目。
 
+![微信提醒效果预览](docs/images/wechat-preview.png)
+
+> 说明：当前仓库内图片为占位图，请替换为你自己的微信生日提醒截图。
+
+## Quick Start
+
+1. Fork 本仓库
+2. 配置 GitHub Secrets：ILINK_TOKEN、TO_USER_ID、CONTEXT_TOKEN
+3. 可选配置 BIRTHDAYS_JSON
+4. 手动运行 Actions 测试
+
 默认采用开源友好的数据策略：
 
 - 仓库只提交示例数据（`birthdays.example.json`）
@@ -45,7 +56,7 @@ src 目录按职责拆分：
 <p style="color:#d1242f;">推荐直接使用下方「方式二：本地 CLI（兜底）」完成初始化。</p>
 
 1. 在仓库 Settings -> Pages 中启用 Pages
-2. 选择 Deploy from branch，分支选 `main`，目录选 `docs`
+2. 选择 Deploy from branch，分支选 `master`，目录选 `docs`
 3. 打开页面 `https://你的用户名.github.io/birthday-bot/setup.html`
 4. 按页面提示：扫码登录 -> 微信给 Bot 发“绑定我” -> 复制结果
 
@@ -142,6 +153,12 @@ PowerShell 示例：
 - AI_API_KEY
 - AI_BASE_URL（可选，默认 https://api.deepseek.com/v1）
 - AI_MODEL（可选，默认 deepseek-chat）
+
+## 安全提醒
+
+请不要公开 ILINK_TOKEN、TO_USER_ID、CONTEXT_TOKEN、BIRTHDAYS_JSON。
+
+如果误提交，请立即重新扫码生成凭证并清理仓库历史。
 
 示例：
 
