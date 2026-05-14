@@ -208,8 +208,26 @@ PowerShell 示例：
 
 说明：
 
-- birthdayType 支持 lunar 和 solar
-- 农历生日按农历月日匹配，阳历生日按公历月日匹配
+字段详解：
+
+- id：成员唯一标识，建议全局唯一且稳定（例如 `m001`、`child_zhangsan`）。用于程序内部关联，不要重复。
+- parentId：父级成员的 id，用于表达家族层级关系。没有上级可留空字符串。
+- spouseId：配偶成员的 id，用于建立夫妻关联。没有配偶可留空字符串。
+- familyName：姓氏或家族名（如“张”“李”），用于展示和检索。
+- generation：辈分/代际标记（如“爷爷辈”“父母辈”“子女辈”或数字代际），建议全库口径一致。
+- name：姓名（常用名），用于生日提醒主展示字段。
+- nickName（可选）：昵称或小名（如“外婆”“小宝”），用于文案更口语化展示。
+- relation：与维护者关系（如“父亲”“母亲”“儿子”“女儿”“朋友”），用于提醒文案称谓。
+- birthYear：出生年份（四位数字，如 `1992`）。若不确定可按实际情况填近似值或约定占位值。
+- gender：性别标记，建议使用固定枚举（如 `male` / `female` / `unknown`）以便后续文案逻辑稳定。
+- birthdayType：生日历法类型，支持 `lunar`（农历）和 `solar`（阳历）。
+- birthMonth：出生月份（1-12 的整数，不补零），与 `birthdayType` 对应的历法保持一致。
+- birthDay：出生日期（1-31 的整数，不补零），与 `birthdayType` 对应的历法保持一致。
+
+匹配规则：
+
+- 当 `birthdayType=solar` 时，系统按公历 `birthMonth + birthDay` 判断是否当天生日。
+- 当 `birthdayType=lunar` 时，系统按农历 `birthMonth + birthDay` 判断是否当天生日。
 
 ## 常见问题
 
