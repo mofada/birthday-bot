@@ -1,0 +1,50 @@
+name: Birthday Bot
+
+on:
+  schedule:
+    # 北京时间 08:30 = UTC 当天 00:30
+    # 注意：GitHub schedule 可能有分钟级延迟，不保证绝对准点触发。
+    - cron: "30 0 * * *"
+
+  workflow_dispatch:
+
+jobs:
+  birthday:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Restore runtime cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .runtime
+          key: birthday-bot-runtime-${{ github.run_id }}
+          restore-keys: |
+            birthday-bot-runtime-
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run birthday bot
+        run: bun run start
+        env:
+          # Secrets 不会自动注入到进程环境，必须在 workflow 里显式映射。
+          ILINK_TOKEN: ${{ secrets.ILINK_TOKEN }}
+          TO_USER_ID: ${{ secrets.TO_USER_ID }}
+          CONTEXT_TOKEN: ${{ secrets.CONTEXT_TOKEN }}
+          BIRTHDAYS_JSON: ${{ secrets.BIRTHDAYS_JSON }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
+
+      - name: Save runtime cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .runtime
+          key: birthday-bot-runtime-${{ github.run_id }}

@@ -1,0 +1,21 @@
+{
+  "name": "birthday-bot",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "get-token": "bun run scripts/get-token.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "dayjs": "^1.11.20",
+    "lunar-typescript": "^1.8.6",
+    "openai": "^4.104.0"
+  }
+}

@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Birthday Bot Setup</title>
+    <style>
+      :root {
+        --bg: #f6f7fb;
+        --card: #ffffff;
+        --text: #16212f;
+        --muted: #5f6b7a;
+        --line: #dfe5ee;
+        --brand: #0f766e;
+        --brand-2: #155e75;
+        --warn-bg: #fff9e6;
+        --warn-text: #8a5a00;
+        --danger-bg: #fff1f1;
+        --danger-text: #7c1f1f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: radial-gradient(circle at top right, #e6fffa, transparent 40%), var(--bg);
+        color: var(--text);
+      }
+
+      .wrap {
+        max-width: 900px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 6px 24px rgba(16, 24, 40, 0.05);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .step-title {
+        margin-top: 0;
+        margin-bottom: 8px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-weight: 600;
+        color: white;
+        background: linear-gradient(135deg, var(--brand), var(--brand-2));
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 12px;
+      }
+
+      .qr {
+        max-width: 260px;
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 170px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        padding: 10px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+      }
+
+      .warn {
+        background: var(--warn-bg);
+        color: var(--warn-text);
+        border: 1px solid #f3d48c;
+        border-radius: 10px;
+        padding: 10px;
+      }
+
+      .danger {
+        background: var(--danger-bg);
+        color: var(--danger-text);
+        border: 1px solid #f3b1b1;
+        border-radius: 10px;
+        padding: 10px;
+      }
+
+      code {
+        background: #eef2f7;
+        padding: 1px 6px;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Birthday Bot 初始化向导</h1>
+        <p class="muted">流程：扫码登录 → 给 Bot 发“绑定我” → 复制 Secrets。</p>
+        <div class="danger">
+          这些信息相当于你的微信 Bot 凭证，请不要截图发给别人，也不要提交到仓库。
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="step-title">第 1 步：获取二维码并扫码</h3>
+        <div class="row" style="margin-bottom: 10px">
+          <button id="btnStart">获取二维码</button>
+          <span id="status" class="pill">未开始</span>
+        </div>
+        <div id="qrWrap" style="display:none">
+          <img id="qrImage" class="qr" alt="登录二维码" />
+          <p class="muted" id="scanHint">请用 iOS 微信扫码并确认登录。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="step-title">第 2 步：微信给 Bot 发一句“绑定我”</h3>
+        <p class="muted">发送后点击下方按钮，页面会自动轮询获取 TO_USER_ID 和 CONTEXT_TOKEN。</p>
+        <button id="btnBind" disabled>我已发送“绑定我”，开始获取</button>
+      </div>
+
+      <div class="card">
+        <h3 class="step-title">第 3 步：复制并填写到 GitHub Secrets</h3>
+        <textarea id="result" placeholder="等待生成..." readonly></textarea>
+        <div class="row" style="margin-top: 10px">
+          <button id="btnCopy" disabled>复制结果</button>
+        </div>
+      </div>
+
+      <div class="card warn" id="corsBox" style="display:none">
+        <strong>CORS 提示：</strong>
+        <div id="corsMsg" style="margin-top: 8px"></div>
+        <div style="margin-top: 8px">
+          如果网页方式失败，请在本地运行：<code>bun run get-token</code>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const BASE = "https://ilinkai.weixin.qq.com";
+      const CHANNEL_VERSION = "0.1.0";
+
+      let qrcode = "";
+      let botToken = "";
+      let botBaseUrl = BASE;
+      let getUpdatesBuf = "";
+      let scanTimer = null;
+      let bindTimer = null;
+
+      const $ = (id) => document.getElementById(id);
+      const btnStart = $("btnStart");
+      const btnBind = $("btnBind");
+      const btnCopy = $("btnCopy");
+      const statusEl = $("status");
+      const qrWrap = $("qrWrap");
+      const qrImage = $("qrImage");
+      const scanHint = $("scanHint");
+      const resultEl = $("result");
+      const corsBox = $("corsBox");
+      const corsMsg = $("corsMsg");
+
+      function generateWechatUin() {
+        const random = Math.floor(Math.random() * 0xffffffff);
+        return btoa(String(random));
+      }
+
+      function setStatus(text) {
+        statusEl.textContent = text;
+      }
+
+      function showCorsFallback(message) {
+        corsMsg.textContent = message;
+        corsBox.style.display = "block";
+      }
+
+      async function requestJson(url, options = {}) {
+        try {
+          const resp = await fetch(url, options);
+          const txt = await resp.text();
+          if (!resp.ok) {
+            throw new Error(`HTTP ${resp.status}: ${txt || "请求失败"}`);
+          }
+          return txt ? JSON.parse(txt) : {};
+        } catch (error) {
+          if (error instanceof TypeError) {
+            showCorsFallback("浏览器跨域被拦截，无法直接访问 iLink 接口。");
+          }
+          throw error;
+        }
+      }
+
+      async function pollQrStatus() {
+        try {
+          const data = await requestJson(`${BASE}/ilink/bot/get_qrcode_status?qrcode=${encodeURIComponent(qrcode)}`, {
+            headers: {
+              "iLink-App-ClientVersion": "1",
+            },
+          });
+
+          if (data.status === "confirmed") {
+            clearInterval(scanTimer);
+            scanTimer = null;
+            botToken = data.bot_token || "";
+            botBaseUrl = data.baseurl || BASE;
+            setStatus("扫码已确认");
+            scanHint.textContent = "登录成功，请在微信给 Bot 发送：绑定我";
+            btnBind.disabled = false;
+            return;
+          }
+
+          if (data.status === "expired") {
+            clearInterval(scanTimer);
+            scanTimer = null;
+            setStatus("二维码已过期");
+            scanHint.textContent = "二维码过期，请重新点击获取二维码";
+            return;
+          }
+
+          if (data.status === "scaned") {
+            setStatus("已扫码，待确认");
+          }
+        } catch (error) {
+          console.error(error);
+          setStatus("查询扫码状态失败");
+        }
+      }
+
+      async function startQrFlow() {
+        btnStart.disabled = true;
+        btnBind.disabled = true;
+        setStatus("正在获取二维码");
+        corsBox.style.display = "none";
+
+        try {
+          const qrRes = await requestJson(`${BASE}/ilink/bot/get_bot_qrcode?bot_type=3`);
+          qrcode = qrRes.qrcode || "";
+          const img = qrRes.qrcode_img_content || "";
+
+          if (!qrcode || !img) {
+            throw new Error("二维码响应异常");
+          }
+
+          qrImage.src = img;
+          qrWrap.style.display = "block";
+          setStatus("请扫码");
+
+          if (scanTimer) clearInterval(scanTimer);
+          scanTimer = setInterval(pollQrStatus, 1000);
+          await pollQrStatus();
+        } catch (error) {
+          console.error(error);
+          setStatus("获取二维码失败");
+        } finally {
+          btnStart.disabled = false;
+        }
+      }
+
+      async function getUpdatesOnce() {
+        const resp = await requestJson(`${botBaseUrl}/ilink/bot/getupdates`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            AuthorizationType: "ilink_bot_token",
+            Authorization: `Bearer ${botToken}`,
+            "X-WECHAT-UIN": generateWechatUin(),
+          },
+          body: JSON.stringify({
+            get_updates_buf: getUpdatesBuf,
+            base_info: {
+              channel_version: CHANNEL_VERSION,
+            },
+          }),
+        });
+
+        if (resp.get_updates_buf) {
+          getUpdatesBuf = resp.get_updates_buf;
+        }
+
+        const msgs = Array.isArray(resp.msgs) ? resp.msgs : [];
+        const textMsg = msgs.find((msg) => {
+          if (msg.message_type !== 1) return false;
+          const text = (msg.item_list || []).find((item) => item.type === 1)?.text_item?.text;
+          return Boolean(text);
+        });
+
+        if (!textMsg) return null;
+
+        return {
+          toUserId: textMsg.from_user_id || "",
+          contextToken: textMsg.context_token || "",
+        };
+      }
+
+      async function startBindFlow() {
+        if (!botToken) {
+          alert("请先完成扫码登录");
+          return;
+        }
+
+        btnBind.disabled = true;
+        setStatus("正在获取绑定信息");
+
+        if (bindTimer) clearInterval(bindTimer);
+
+        const runner = async () => {
+          try {
+            const result = await getUpdatesOnce();
+            if (!result) return;
+
+            if (!result.toUserId || !result.contextToken) return;
+
+            clearInterval(bindTimer);
+            bindTimer = null;
+            setStatus("绑定完成");
+
+            const output = [
+              `ILINK_TOKEN=${botToken}`,
+              `TO_USER_ID=${result.toUserId}`,
+              `CONTEXT_TOKEN=${result.contextToken}`,
+              `BOT_BASE_URL=${botBaseUrl}`,
+            ].join("\n");
+
+            resultEl.value = output;
+            btnCopy.disabled = false;
+          } catch (error) {
+            console.error(error);
+            setStatus("获取绑定信息失败");
+          }
+        };
+
+        bindTimer = setInterval(runner, 1500);
+        await runner();
+      }
+
+      btnStart.addEventListener("click", startQrFlow);
+      btnBind.addEventListener("click", startBindFlow);
+      btnCopy.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(resultEl.value);
+          btnCopy.textContent = "已复制";
+          setTimeout(() => {
+            btnCopy.textContent = "复制结果";
+          }, 1500);
+        } catch {
+          alert("复制失败，请手动复制文本框内容");
+        }
+      });
+    </script>
+  </body>
+</html>
