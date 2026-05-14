@@ -4,8 +4,6 @@
 
 ![微信提醒效果预览](docs/images/wechat-preview.png)
 
-> 说明：当前仓库内图片为占位图，请替换为你自己的微信生日提醒截图。
-
 ## Quick Start
 
 1. Fork 本仓库
