@@ -55,7 +55,7 @@ src 目录按职责拆分：
 
 1. 在仓库 Settings -> Pages 中启用 Pages
 2. 选择 Deploy from branch，分支选 `master`，目录选 `docs`
-3. 打开页面 `https://mofada.github.io/birthday-bot/`（会自动跳转到 setup 页面）
+3. 打开页面 [Birthday Bot Setup](`https://mofada.github.io/birthday-bot/`)
 4. 按页面提示：扫码登录 -> 微信给 Bot 发“绑定我” -> 复制结果
 
 页面会生成：
