@@ -152,6 +152,19 @@ PowerShell 示例：
 - AI_BASE_URL（可选，默认 https://api.deepseek.com/v1）
 - AI_MODEL（可选，默认 deepseek-chat）
 
+## 重要提示：Context Token 有效期
+
+Context Token 是微信通过 iLink 协议返回的会话凭证，有效期约 24 小时。
+
+重要：首次接入时，无法主动获取 Context Token。只有当用户向 Bot 发送消息后，该消息中才会包含 Context Token。获得后应立即缓存，后续可使用该 Token 在 24 小时有效期内主动向用户发送消息。
+
+补充说明：
+
+- `bot_token`、`to_user_id` 可长期持久化
+- `context_token` 约 24 小时有效，过期后通常需要用户再次发送消息刷新
+- `get_updates_buf` 是消息同步游标，不会延长 `context_token` 有效期
+- 若超过 24 小时无互动，主动发送可能失败（常见返回 `ret=-2`）
+
 ## 安全提醒
 
 请不要公开 ILINK_TOKEN、TO_USER_ID、CONTEXT_TOKEN、BIRTHDAYS_JSON。
